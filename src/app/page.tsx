@@ -1,63 +1,268 @@
-import Image from "next/image";
+"use client";
+
+import { useState, useRef, DragEvent, ChangeEvent } from "react";
+import {
+  FileSpreadsheet,
+  Upload,
+  Download,
+  X,
+  Loader2,
+  CheckCircle2,
+  Sparkles,
+} from "lucide-react";
+
+type Status = "idle" | "ready" | "submitting" | "done" | "error";
 
 export default function Home() {
+  const [file, setFile] = useState<File | null>(null);
+  const [instruction, setInstruction] = useState("");
+  const [status, setStatus] = useState<Status>("idle");
+  const [downloadUrl, setDownloadUrl] = useState<string>("");
+  const [downloadName, setDownloadName] = useState<string>("");
+  const [isDragging, setIsDragging] = useState(false);
+  const [errorMsg, setErrorMsg] = useState("");
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const acceptFile = (f: File) => {
+    const valid =
+      f.name.endsWith(".xlsx") ||
+      f.name.endsWith(".xls") ||
+      f.name.endsWith(".csv");
+    if (!valid) {
+      setErrorMsg("仅支持 .xlsx / .xls / .csv 格式");
+      return;
+    }
+    setFile(f);
+    setStatus("ready");
+    setErrorMsg("");
+  };
+
+  const handleDrop = (e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsDragging(false);
+    const f = e.dataTransfer.files[0];
+    if (f) acceptFile(f);
+  };
+
+  const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0];
+    if (f) acceptFile(f);
+  };
+
+  const handleRemoveFile = () => {
+    setFile(null);
+    setStatus("idle");
+    setErrorMsg("");
+    if (inputRef.current) inputRef.current.value = "";
+  };
+
+  const handleSubmit = async () => {
+    if (!file || !instruction.trim()) return;
+    setStatus("submitting");
+    setErrorMsg("");
+
+    try {
+      // TODO: 替换为真实的后端接口
+      // const form = new FormData();
+      // form.append("file", file);
+      // form.append("instruction", instruction);
+      // const res = await fetch("/api/process", { method: "POST", body: form });
+      // const data = await res.json();
+      // setDownloadUrl(data.downloadUrl);
+      // setDownloadName(data.filename ?? "result.xlsx");
+
+      // 模拟等待（接入后端后删除）
+      await new Promise((r) => setTimeout(r, 1500));
+      // 模拟收到下载地址（接入后端后删除）
+      setDownloadUrl("#");
+      setDownloadName(`processed_${file.name}`);
+      setStatus("done");
+    } catch {
+      setErrorMsg("提交失败，请稍后重试");
+      setStatus("ready");
+    }
+  };
+
+  const handleReset = () => {
+    setFile(null);
+    setInstruction("");
+    setStatus("idle");
+    setDownloadUrl("");
+    setDownloadName("");
+    setErrorMsg("");
+    if (inputRef.current) inputRef.current.value = "";
+  };
+
+  const canSubmit =
+    file !== null && instruction.trim().length > 0 && status === "ready";
+  const isSubmitting = status === "submitting";
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex flex-col">
+      {/* Header */}
+      <header className="border-b border-slate-200 bg-white/70 backdrop-blur-sm sticky top-0 z-10">
+        <div className="max-w-3xl mx-auto px-6 py-4 flex items-center gap-3">
+          <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center">
+            <FileSpreadsheet className="w-4 h-4 text-white" />
+          </div>
+          <span className="font-semibold text-slate-800 text-lg">
+            Excel 智能处理
+          </span>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+      </header>
+
+      {/* Main */}
+      <main className="flex-1 flex items-start justify-center px-6 py-16">
+        <div className="w-full max-w-2xl space-y-6">
+          {/* Title */}
+          <div className="text-center space-y-2">
+            <h1 className="text-3xl font-bold text-slate-900">
+              上传 Excel，描述你的需求
+            </h1>
+            <p className="text-slate-500 text-base">
+              AI 自动处理，完成后即可下载结果文件
+            </p>
+          </div>
+
+          {/* Card */}
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+            {/* Step 1 - Upload */}
+            <div className="p-6 border-b border-slate-100">
+              <div className="flex items-center gap-2 mb-4">
+                <span className="w-6 h-6 rounded-full bg-blue-600 text-white text-xs font-semibold flex items-center justify-center">
+                  1
+                </span>
+                <span className="font-medium text-slate-700">上传文件</span>
+              </div>
+
+              {!file ? (
+                <div
+                  onClick={() => inputRef.current?.click()}
+                  onDrop={handleDrop}
+                  onDragOver={(e) => {
+                    e.preventDefault();
+                    setIsDragging(true);
+                  }}
+                  onDragLeave={() => setIsDragging(false)}
+                  className={`relative border-2 border-dashed rounded-xl p-10 text-center cursor-pointer transition-all
+                    ${
+                      isDragging
+                        ? "border-blue-500 bg-blue-50"
+                        : "border-slate-200 hover:border-blue-400 hover:bg-slate-50"
+                    }`}
+                >
+                  <Upload className="w-8 h-8 mx-auto mb-3 text-slate-400" />
+                  <p className="text-slate-600 font-medium">
+                    点击选择 或 拖拽文件到此处
+                  </p>
+                  <p className="text-slate-400 text-sm mt-1">
+                    支持 .xlsx · .xls · .csv
+                  </p>
+                  <input
+                    ref={inputRef}
+                    type="file"
+                    accept=".xlsx,.xls,.csv"
+                    className="hidden"
+                    onChange={handleFileChange}
+                  />
+                </div>
+              ) : (
+                <div className="flex items-center gap-3 p-4 bg-green-50 border border-green-200 rounded-xl">
+                  <FileSpreadsheet className="w-6 h-6 text-green-600 shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-slate-800 truncate">
+                      {file.name}
+                    </p>
+                    <p className="text-sm text-slate-500">
+                      {(file.size / 1024).toFixed(1)} KB
+                    </p>
+                  </div>
+                  <button
+                    onClick={handleRemoveFile}
+                    className="p-1 rounded-lg hover:bg-green-100 text-slate-400 hover:text-slate-600 transition-colors"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              )}
+
+              {errorMsg && (
+                <p className="mt-2 text-sm text-red-500">{errorMsg}</p>
+              )}
+            </div>
+
+            {/* Step 2 - Instruction */}
+            <div className="p-6 border-b border-slate-100">
+              <div className="flex items-center gap-2 mb-4">
+                <span className="w-6 h-6 rounded-full bg-blue-600 text-white text-xs font-semibold flex items-center justify-center">
+                  2
+                </span>
+                <span className="font-medium text-slate-700">描述修改需求</span>
+              </div>
+              <textarea
+                value={instruction}
+                onChange={(e) => setInstruction(e.target.value)}
+                placeholder="例如：将 A 列的所有空白单元格填充为 0；把第 3 行到第 10 行按金额从大到小排序…"
+                rows={4}
+                className="w-full resize-none rounded-xl border border-slate-200 px-4 py-3 text-slate-700 placeholder-slate-400
+                  text-sm leading-relaxed outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+              />
+            </div>
+
+            {/* Step 3 - Submit & Result */}
+            <div className="p-6">
+              {status !== "done" ? (
+                <button
+                  onClick={handleSubmit}
+                  disabled={!canSubmit || isSubmitting}
+                  className={`w-full h-12 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 transition-all
+                    ${
+                      canSubmit && !isSubmitting
+                        ? "bg-blue-600 hover:bg-blue-700 text-white shadow-sm"
+                        : "bg-slate-100 text-slate-400 cursor-not-allowed"
+                    }`}
+                >
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      AI 处理中…
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="w-4 h-4" />
+                      提交处理
+                    </>
+                  )}
+                </button>
+              ) : (
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2 text-green-600">
+                    <CheckCircle2 className="w-5 h-5" />
+                    <span className="font-medium">处理完成，可以下载了</span>
+                  </div>
+                  <a
+                    href={downloadUrl}
+                    download={downloadName}
+                    className="w-full h-12 rounded-xl bg-green-600 hover:bg-green-700 text-white font-semibold text-sm
+                      flex items-center justify-center gap-2 transition-colors shadow-sm"
+                  >
+                    <Download className="w-4 h-4" />
+                    下载结果文件
+                  </a>
+                  <button
+                    onClick={handleReset}
+                    className="w-full h-10 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-500 text-sm transition-colors"
+                  >
+                    重新处理另一个文件
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <p className="text-center text-xs text-slate-400">
+            文件仅用于本次处理，不会被永久存储
+          </p>
         </div>
       </main>
     </div>
