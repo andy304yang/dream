@@ -9,7 +9,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "check:server": "curl -sf ${BACKEND_URL:-http://localhost:8000}/api/health | node -e \"const d=JSON.parse(require('fs').readFileSync('/dev/stdin','utf8'));console.log(JSON.stringify(d,null,2));process.exit(d.status==='ok'?0:1)\""
   },
   "dependencies": {
     "lucide-react": "^1.11.0",

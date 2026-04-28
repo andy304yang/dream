@@ -14,7 +14,9 @@ import {
 
 type Status = "idle" | "uploading" | "processing" | "polling" | "done" | "error";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "";
+// API 调用用相对路径，由 next.config.ts 的 rewrites 代理到后端
+// 不再依赖 NEXT_PUBLIC_API_URL，部署时无需重新构建
+const API_BASE = "";
 
 // 生成或读取用户唯一 ID（localStorage 持久化）
 function getUserId(): string {

@@ -1,8 +1,22 @@
 import type { NextConfig } from "next";
 
+// 后端地址：本地开发用 localhost:8000，Docker 内用服务名 backend:8000
+// 这是服务端变量，运行时生效，不需要 NEXT_PUBLIC 前缀，也不需要重新构建
+const BACKEND_URL = process.env.BACKEND_URL || "http://localhost:8000";
+
 const nextConfig: NextConfig = {
-  // 独立输出模式，便于部署到自己的服务器
   output: "standalone",
+
+  // 把所有 /api/* 请求代理转发到 FastAPI 后端
+  // 前端只需用相对路径 /api/xxx，无需 NEXT_PUBLIC_API_URL
+  async rewrites() {
+    return [
+      {
+        source: "/api/:path*",
+        destination: `${BACKEND_URL}/api/:path*`,
+      },
+    ];
+  },
 
   // 生产环境压缩
   compress: true,
