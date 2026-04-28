@@ -38,32 +38,41 @@ export default function Home() {
   const [taskId, setTaskId] = useState("");
   const [pollingCount, setPollingCount] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
-  const [userId] = useState(() => getUserId());
+  const [userId, setUserId] = useState("");
+
+  useEffect(() => {
+    setUserId(getUserId());
+  }, []);
 
   // 轮询任务状态
   useEffect(() => {
     if (status !== "polling" || !taskId || !userId) return;
 
+    let cancelled = false;
+    let count = 0;
+    const MAX_POLLS = 150; // 5 分钟
+
     const poll = async () => {
+      if (cancelled) return;
       try {
         const res = await fetch(`${API_BASE}/api/task/${taskId}?user_id=${encodeURIComponent(userId)}`);
         if (!res.ok) throw new Error("查询失败");
         const data = await res.json();
 
         if (data.status === "done") {
-          setDownloadUrl(data.result_url || "");
-          setDownloadName(data.filename || `result_${file?.name || "output.xlsx"}`);
+          setDownloadUrl(`${API_BASE}/api/download/${taskId}?user_id=${encodeURIComponent(userId)}`);
+          setDownloadName(`result_${file?.name || "output.xlsx"}`);
           setStatus("done");
         } else if (data.status === "failed") {
           setErrorMsg(data.error || "处理失败，请重试");
           setStatus("error");
         } else {
-          // 继续轮询，最多 60 次（约 2 分钟）
-          if (pollingCount < 60) {
-            setPollingCount((c) => c + 1);
+          count++;
+          setPollingCount(count); // 仅用于界面显示
+          if (count < MAX_POLLS) {
             setTimeout(poll, 2000);
           } else {
-            setErrorMsg("处理超时，请稍后重试");
+            setErrorMsg("处理超时（5 分钟），请稍后重试");
             setStatus("error");
           }
         }
@@ -74,7 +83,10 @@ export default function Home() {
     };
 
     poll();
-  }, [status, taskId, userId, pollingCount, file?.name]);
+    return () => { cancelled = true; };
+  // pollingCount 故意不放依赖数组，计数由 Effect 内部 count 变量管理
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [status, taskId, userId]);
 
   const acceptFile = (f: File) => {
     const valid = f.name.endsWith(".xlsx") || f.name.endsWith(".xls") || f.name.endsWith(".csv");
@@ -180,7 +192,7 @@ export default function Home() {
       : status === "processing"
       ? "指令提交中…"
       : status === "polling"
-      ? `AI 处理中（${pollingCount * 2}秒）…`
+      ? `AI 处理中…已等待 ${pollingCount * 2} 秒，文件较大时可能需要几分钟`
       : null;
 
   return (
